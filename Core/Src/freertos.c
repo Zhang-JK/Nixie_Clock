@@ -49,6 +49,8 @@
 
 /* USER CODE END Variables */
 osThreadId blinkHandle;
+osThreadId ds3231Handle;
+osThreadId NixieControllerHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -56,6 +58,8 @@ osThreadId blinkHandle;
 /* USER CODE END FunctionPrototypes */
 
 void Blink(void const * argument);
+void ds3231Timer(void const * argument);
+void nixieControl(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -106,6 +110,14 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(blink, Blink, osPriorityLow, 0, 128);
   blinkHandle = osThreadCreate(osThread(blink), NULL);
 
+  /* definition and creation of ds3231 */
+  osThreadDef(ds3231, ds3231Timer, osPriorityHigh, 0, 256);
+  ds3231Handle = osThreadCreate(osThread(ds3231), NULL);
+
+  /* definition and creation of NixieController */
+  osThreadDef(NixieController, nixieControl, osPriorityRealtime, 0, 256);
+  NixieControllerHandle = osThreadCreate(osThread(NixieController), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -122,15 +134,51 @@ void MX_FREERTOS_Init(void) {
 void Blink(void const * argument)
 {
   /* USER CODE BEGIN Blink */
-  HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+  // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
   /* Infinite loop */
   for(;;)
   {
-    HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
-    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_2);
     osDelay(300);
   }
   /* USER CODE END Blink */
+}
+
+/* USER CODE BEGIN Header_ds3231Timer */
+/**
+* @brief Function implementing the ds3231 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ds3231Timer */
+void ds3231Timer(void const * argument)
+{
+  /* USER CODE BEGIN ds3231Timer */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(10);
+  }
+  /* USER CODE END ds3231Timer */
+}
+
+/* USER CODE BEGIN Header_nixieControl */
+/**
+* @brief Function implementing the NixieController thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_nixieControl */
+void nixieControl(void const * argument)
+{
+  /* USER CODE BEGIN nixieControl */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END nixieControl */
 }
 
 /* Private application code --------------------------------------------------*/
