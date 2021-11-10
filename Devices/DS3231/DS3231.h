@@ -17,13 +17,8 @@ typedef struct
 	uint8_t  day;
 	uint8_t  week;
 	uint16_t temperature;
-}Calendar;	
-
-// ------------------ Port Def ------------------
-#define     DS3231_I2C_SCL_PORT             GPIOA
-#define     DS3231_I2C_SCL_PIN              GPIO_PIN_9
-#define     DS3231_I2C_SDA_PORT             GPIOA 
-#define		DS3231_I2C_SDA_PIN				GPIO_PIN_10
+    uint32_t timestamp;
+}Calendar;
 
 // --------------- Register Address --------------
 
@@ -50,7 +45,11 @@ typedef struct
 #define 	DS3231_AGING        			0x10    // Aging offset
 #define 	DS3231_TEMPERATURE_H 			0x11    // LSB of temp
 #define 	DS3231_TEMPERATURE_L 			0x12    // MSB of temp
+#define     DS3231_ADD                      0x68
 
 extern Calendar calendar;
+
+uint8_t getDatetime(Calendar* cal);
+uint8_t setDatetime(Calendar* cal);
 
 #endif

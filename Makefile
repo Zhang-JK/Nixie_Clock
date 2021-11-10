@@ -69,7 +69,7 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM0/port.c \
 Core/Src/gpio.c \
 Core/Src/i2c.c \
-Devices/DS3231/ds3231.c \
+Devices/DS3231/DS3231.c \
 Devices/NixieTube/NixieTube.c \
 Core/Src/usart.c \
 Core/Src/spi.c \

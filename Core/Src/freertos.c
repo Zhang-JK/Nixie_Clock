@@ -27,6 +27,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "NixieTube.h"
+#include "i2c.h"
+#include "DS3231.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,9 +59,11 @@ osThreadId NixieControllerHandle;
 
 /* USER CODE END FunctionPrototypes */
 
-void Blink(void const * argument);
-void ds3231Timer(void const * argument);
-void nixieControl(void const * argument);
+_Noreturn void Blink(void const * argument);
+
+_Noreturn void ds3231Timer(void const * argument);
+
+_Noreturn void nixieControl(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -131,7 +135,7 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_Blink */
-void Blink(void const * argument)
+_Noreturn void Blink(void const * argument)
 {
   /* USER CODE BEGIN Blink */
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
@@ -151,13 +155,15 @@ void Blink(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_ds3231Timer */
-void ds3231Timer(void const * argument)
+_Noreturn void ds3231Timer(void const * argument)
 {
-  /* USER CODE BEGIN ds3231Timer */
+    /* USER CODE BEGIN ds3231Timer */
+    static volatile Calendar cal;
+
     /* Infinite loop */
     for (;;) {
-        HAL_I2C_Mem_Read_DMA(&hi2c1,DS3231_ADD<<1,0,I2C_MEMADD_SIZE_8BIT,DS3231_Receivebuff,19);
-        osDelay(999);
+        getDatetime(&cal);
+        osDelay(300);
     }
   /* USER CODE END ds3231Timer */
 }
@@ -169,17 +175,18 @@ void ds3231Timer(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_nixieControl */
-void nixieControl(void const * argument)
+_Noreturn void nixieControl(void const * argument)
 {
   /* USER CODE BEGIN nixieControl */
     static volatile NixieTube tube;
     setGPIO(&tube, nixiePorts[1], nixiePins[1]);
     static volatile int number=0;
+
     /* Infinite loop */
     for (;;) {
         setNumber(&tube, number);
-        osDelay(1000);
         number = ++number % 10;
+        osDelay(1000);
     }
   /* USER CODE END nixieControl */
 }
