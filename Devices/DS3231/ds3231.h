@@ -20,7 +20,7 @@ typedef struct
 }Calendar;	
 
 // ------------------ Port Def ------------------
-#define     DS3231_I2C_SCL_PORT             GPIOA  
+#define     DS3231_I2C_SCL_PORT             GPIOA
 #define     DS3231_I2C_SCL_PIN              GPIO_PIN_9
 #define     DS3231_I2C_SDA_PORT             GPIOA 
 #define		DS3231_I2C_SDA_PIN				GPIO_PIN_10

@@ -26,7 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "NixieTube.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,12 +70,12 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 static StaticTask_t xIdleTaskTCBBuffer;
 static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
 
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
-{
-  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
-  *ppxIdleTaskStackBuffer = &xIdleStack[0];
-  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
-  /* place for user code */
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer,
+                                   uint32_t *pulIdleTaskStackSize) {
+    *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+    *ppxIdleTaskStackBuffer = &xIdleStack[0];
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+    /* place for user code */
 }
 /* USER CODE END GET_IDLE_TASK_MEMORY */
 
@@ -90,19 +90,19 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+    /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
+    /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
+    /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+    /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -119,7 +119,7 @@ void MX_FREERTOS_Init(void) {
   NixieControllerHandle = osThreadCreate(osThread(NixieController), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+    /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -134,14 +134,13 @@ void MX_FREERTOS_Init(void) {
 void Blink(void const * argument)
 {
   /* USER CODE BEGIN Blink */
-  // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-  /* Infinite loop */
-  for(;;)
-  {
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_2);
-    osDelay(300);
-  }
+    /* Infinite loop */
+    for (;;) {
+        // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_2);
+        osDelay(300);
+    }
   /* USER CODE END Blink */
 }
 
@@ -155,11 +154,11 @@ void Blink(void const * argument)
 void ds3231Timer(void const * argument)
 {
   /* USER CODE BEGIN ds3231Timer */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(10);
-  }
+    /* Infinite loop */
+    for (;;) {
+        HAL_I2C_Mem_Read_DMA(&hi2c1,DS3231_ADD<<1,0,I2C_MEMADD_SIZE_8BIT,DS3231_Receivebuff,19);
+        osDelay(999);
+    }
   /* USER CODE END ds3231Timer */
 }
 
@@ -173,11 +172,15 @@ void ds3231Timer(void const * argument)
 void nixieControl(void const * argument)
 {
   /* USER CODE BEGIN nixieControl */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    static volatile NixieTube tube;
+    setGPIO(&tube, nixiePorts[1], nixiePins[1]);
+    static volatile int number=0;
+    /* Infinite loop */
+    for (;;) {
+        setNumber(&tube, number);
+        osDelay(1000);
+        number = ++number % 10;
+    }
   /* USER CODE END nixieControl */
 }
 
