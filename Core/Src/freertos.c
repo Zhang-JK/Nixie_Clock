@@ -27,8 +27,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "NixieTube.h"
-#include "i2c.h"
 #include "DS3231.h"
+#include "Buzzer.h"
+#include "MusicSheets.h"
+#include "tim.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,22 +55,26 @@
 osThreadId blinkHandle;
 osThreadId ds3231Handle;
 osThreadId NixieControllerHandle;
+osThreadId musicHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
 
-_Noreturn void Blink(void const * argument);
+_Noreturn void Blink(void const *argument);
 
-_Noreturn void ds3231Timer(void const * argument);
+_Noreturn void ds3231Timer(void const *argument);
 
-_Noreturn void nixieControl(void const * argument);
+_Noreturn void nixieControl(void const *argument);
+
+_Noreturn void mucisControl(void const *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer,
+                                   uint32_t *pulIdleTaskStackSize);
 
 /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
 static StaticTask_t xIdleTaskTCBBuffer;
@@ -89,42 +95,46 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackTyp
   * @retval None
   */
 void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
+    /* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+    /* USER CODE END Init */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
+    /* USER CODE BEGIN RTOS_MUTEX */
     /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+    /* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
+    /* USER CODE BEGIN RTOS_SEMAPHORES */
     /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+    /* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
+    /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+    /* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
+    /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
+    /* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* definition and creation of blink */
-  osThreadDef(blink, Blink, osPriorityLow, 0, 128);
-  blinkHandle = osThreadCreate(osThread(blink), NULL);
+    /* Create the thread(s) */
+    /* definition and creation of blink */
+    osThreadDef(blink, Blink, osPriorityLow, 0, 128);
+    blinkHandle = osThreadCreate(osThread(blink), NULL);
 
-  /* definition and creation of ds3231 */
-  osThreadDef(ds3231, ds3231Timer, osPriorityHigh, 0, 256);
-  ds3231Handle = osThreadCreate(osThread(ds3231), NULL);
+    /* definition and creation of ds3231 */
+    osThreadDef(ds3231, ds3231Timer, osPriorityHigh, 0, 128);
+    ds3231Handle = osThreadCreate(osThread(ds3231), NULL);
 
-  /* definition and creation of NixieController */
-  osThreadDef(NixieController, nixieControl, osPriorityRealtime, 0, 256);
-  NixieControllerHandle = osThreadCreate(osThread(NixieController), NULL);
+    /* definition and creation of NixieController */
+    osThreadDef(NixieController, nixieControl, osPriorityRealtime, 0, 128);
+    NixieControllerHandle = osThreadCreate(osThread(NixieController), NULL);
 
-  /* USER CODE BEGIN RTOS_THREADS */
+    /* definition and creation of music */
+    osThreadDef(music, mucisControl, osPriorityIdle, 0, 128);
+    musicHandle = osThreadCreate(osThread(music), NULL);
+
+    /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
+    /* USER CODE END RTOS_THREADS */
 
 }
 
@@ -135,17 +145,17 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_Blink */
-_Noreturn void Blink(void const * argument)
-{
-  /* USER CODE BEGIN Blink */
+_Noreturn void Blink(void const *argument) {
+    /* USER CODE BEGIN Blink */
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+
     /* Infinite loop */
     for (;;) {
         // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
         HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_2);
         osDelay(300);
     }
-  /* USER CODE END Blink */
+    /* USER CODE END Blink */
 }
 
 /* USER CODE BEGIN Header_ds3231Timer */
@@ -155,17 +165,17 @@ _Noreturn void Blink(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_ds3231Timer */
-_Noreturn void ds3231Timer(void const * argument)
-{
+_Noreturn void ds3231Timer(void const *argument) {
     /* USER CODE BEGIN ds3231Timer */
-    static volatile Calendar cal;
+    static volatile Calendar cal = {7,4,0,21,11,11,4};
+//    setDatetime(&cal);
 
     /* Infinite loop */
     for (;;) {
         getDatetime(&cal);
         osDelay(300);
     }
-  /* USER CODE END ds3231Timer */
+    /* USER CODE END ds3231Timer */
 }
 
 /* USER CODE BEGIN Header_nixieControl */
@@ -175,12 +185,11 @@ _Noreturn void ds3231Timer(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_nixieControl */
-_Noreturn void nixieControl(void const * argument)
-{
-  /* USER CODE BEGIN nixieControl */
+_Noreturn void nixieControl(void const *argument) {
+    /* USER CODE BEGIN nixieControl */
     static volatile NixieTube tube;
     setGPIO(&tube, nixiePorts[1], nixiePins[1]);
-    static volatile int number=0;
+    static volatile int number = 0;
 
     /* Infinite loop */
     for (;;) {
@@ -188,7 +197,28 @@ _Noreturn void nixieControl(void const * argument)
         number = ++number % 10;
         osDelay(1000);
     }
-  /* USER CODE END nixieControl */
+    /* USER CODE END nixieControl */
+}
+
+/* USER CODE BEGIN Header_mucisControl */
+/**
+* @brief Function implementing the music thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_mucisControl */
+_Noreturn void mucisControl(void const *argument) {
+    /* USER CODE BEGIN mucisControl */
+    static volatile MusicPlayer player;
+    setPWMOutput(&player, &htim3, TIM_CHANNEL_3);
+    setMusicSheet(&player, 100, 30);
+
+    /* Infinite loop */
+    for (;;) {
+        playMusic(&player);
+        osDelay(10);
+    }
+    /* USER CODE END mucisControl */
 }
 
 /* Private application code --------------------------------------------------*/

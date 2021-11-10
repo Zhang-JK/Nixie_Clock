@@ -10,15 +10,18 @@ uint8_t binaryToBCD(uint8_t binary) {
 
 uint8_t getDatetime(Calendar *cal) {
     uint8_t DS3231Receive[19];
-    HAL_I2C_Mem_Read(&hi2c2, DS3231_ADD << 1, 0, I2C_MEMADD_SIZE_8BIT, DS3231Receive, 19, 100);
-    cal->sec    = BCDtoBinary(DS3231Receive[0]);
-    cal->min    = BCDtoBinary(DS3231Receive[1]);
-    cal->hour   = BCDtoBinary(DS3231Receive[2]);
-    cal->week   = BCDtoBinary(DS3231Receive[3]);
-    cal->day    = BCDtoBinary(DS3231Receive[4]);
-    cal->month  = BCDtoBinary(DS3231Receive[5]);
-    cal->year   = BCDtoBinary(DS3231Receive[6]);
-    cal->timestamp = HAL_GetTick();
+    if (HAL_I2C_Mem_Read(&hi2c2, DS3231_ADD << 1, 0, I2C_MEMADD_SIZE_8BIT, DS3231Receive, 19, 100) == HAL_OK) {
+        cal->sec    = BCDtoBinary(DS3231Receive[0]);
+        cal->min    = BCDtoBinary(DS3231Receive[1]);
+        cal->hour   = BCDtoBinary(DS3231Receive[2]);
+        cal->week   = BCDtoBinary(DS3231Receive[3]);
+        cal->day    = BCDtoBinary(DS3231Receive[4]);
+        cal->month  = BCDtoBinary(DS3231Receive[5]);
+        cal->year   = BCDtoBinary(DS3231Receive[6]);
+        cal->timestamp = HAL_GetTick();
+        return 1;
+    }
+    return 0;
 }
 
 uint8_t setDatetime(Calendar *cal) {
