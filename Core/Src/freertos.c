@@ -31,6 +31,7 @@
 #include "Buzzer.h"
 #include "MusicSheets.h"
 #include "tim.h"
+#include "OLED.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,22 +54,35 @@
 
 /* USER CODE END Variables */
 osThreadId blinkHandle;
+uint32_t blinkBuffer[128];
+osStaticThreadDef_t blinkControlBlock;
 osThreadId ds3231Handle;
+uint32_t ds3231Buffer[128];
+osStaticThreadDef_t ds3231ControlBlock;
 osThreadId NixieControllerHandle;
+uint32_t NixieControllerBuffer[128];
+osStaticThreadDef_t NixieControllerControlBlock;
 osThreadId musicHandle;
+uint32_t musicBuffer[128];
+osStaticThreadDef_t musicControlBlock;
+osThreadId OLEDControllerHandle;
+uint32_t OLEDControllerBuffer[128];
+osStaticThreadDef_t OLEDControllerControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
 
-_Noreturn void Blink(void const *argument);
+void Blink(void const *argument);
 
-_Noreturn void ds3231Timer(void const *argument);
+void ds3231Timer(void const *argument);
 
-_Noreturn void nixieControl(void const *argument);
+void nixieControl(void const *argument);
 
-_Noreturn void mucisControl(void const *argument);
+void mucisControl(void const *argument);
+
+void oledController(void const *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -117,20 +131,26 @@ void MX_FREERTOS_Init(void) {
 
     /* Create the thread(s) */
     /* definition and creation of blink */
-    osThreadDef(blink, Blink, osPriorityLow, 0, 128);
+    osThreadStaticDef(blink, Blink, osPriorityLow, 0, 128, blinkBuffer, &blinkControlBlock);
     blinkHandle = osThreadCreate(osThread(blink), NULL);
 
     /* definition and creation of ds3231 */
-    osThreadDef(ds3231, ds3231Timer, osPriorityHigh, 0, 128);
+    osThreadStaticDef(ds3231, ds3231Timer, osPriorityHigh, 0, 128, ds3231Buffer, &ds3231ControlBlock);
     ds3231Handle = osThreadCreate(osThread(ds3231), NULL);
 
     /* definition and creation of NixieController */
-    osThreadDef(NixieController, nixieControl, osPriorityRealtime, 0, 128);
+    osThreadStaticDef(NixieController, nixieControl, osPriorityRealtime, 0, 128, NixieControllerBuffer,
+                      &NixieControllerControlBlock);
     NixieControllerHandle = osThreadCreate(osThread(NixieController), NULL);
 
     /* definition and creation of music */
-    osThreadDef(music, mucisControl, osPriorityIdle, 0, 128);
+    osThreadStaticDef(music, mucisControl, osPriorityIdle, 0, 128, musicBuffer, &musicControlBlock);
     musicHandle = osThreadCreate(osThread(music), NULL);
+
+    /* definition and creation of OLEDController */
+    osThreadStaticDef(OLEDController, oledController, osPriorityBelowNormal, 0, 128, OLEDControllerBuffer,
+                      &OLEDControllerControlBlock);
+    OLEDControllerHandle = osThreadCreate(osThread(OLEDController), NULL);
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -145,7 +165,7 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_Blink */
-_Noreturn void Blink(void const *argument) {
+void Blink(void const *argument) {
     /* USER CODE BEGIN Blink */
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
 
@@ -165,9 +185,9 @@ _Noreturn void Blink(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_ds3231Timer */
-_Noreturn void ds3231Timer(void const *argument) {
+void ds3231Timer(void const *argument) {
     /* USER CODE BEGIN ds3231Timer */
-    static volatile Calendar cal = {7,4,0,21,11,11,4};
+    static volatile Calendar cal = {7, 4, 0, 21, 11, 11, 4};
 //    setDatetime(&cal);
 
     /* Infinite loop */
@@ -185,7 +205,7 @@ _Noreturn void ds3231Timer(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_nixieControl */
-_Noreturn void nixieControl(void const *argument) {
+void nixieControl(void const *argument) {
     /* USER CODE BEGIN nixieControl */
     static volatile NixieTube tube;
     setGPIO(&tube, nixiePorts[1], nixiePins[1]);
@@ -207,7 +227,7 @@ _Noreturn void nixieControl(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_mucisControl */
-_Noreturn void mucisControl(void const *argument) {
+void mucisControl(void const *argument) {
     /* USER CODE BEGIN mucisControl */
     static volatile MusicPlayer player;
     setPWMOutput(&player, &htim3, TIM_CHANNEL_3);
@@ -219,6 +239,36 @@ _Noreturn void mucisControl(void const *argument) {
         osDelay(10);
     }
     /* USER CODE END mucisControl */
+}
+
+/* USER CODE BEGIN Header_oledController */
+/**
+* @brief Function implementing the OLEDController thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_oledController */
+void oledController(void const *argument) {
+    /* USER CODE BEGIN oledController */
+    OLED_Init();
+    osDelay(500);
+    OLED_On();
+    osDelay(500);
+    OLED_Show_String(20, 10, "Nixie Clock", BIG);
+    osDelay(5000);
+    /* Infinite loop */
+    for (;;) {
+        OLED_Show_String(31, 0, "Nixie Clock", SMALL);
+        OLED_Show_String(5, 1, "2021-11-25 00:00:00", SMALL);
+        OLED_Show_String(5, 2, "BT  : NOT Connected", SMALL);
+        OLED_Show_String(5, 3, "WiFi: NOT Connected",SMALL);
+        OLED_Show_String(5, 4, "Mode: Clock, Alarm",SMALL);
+        OLED_Show_String(5, 5, "Last Instruction: ",SMALL);
+        OLED_Show_String(20, 6, "&1-1.",SMALL);
+        OLED_Show_String(56, 7, "Group 22 :)",SMALL);
+        osDelay(200);
+    }
+    /* USER CODE END oledController */
 }
 
 /* Private application code --------------------------------------------------*/
