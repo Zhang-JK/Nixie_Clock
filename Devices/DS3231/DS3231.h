@@ -51,5 +51,6 @@ extern Calendar calendar;
 
 uint8_t getDatetime(Calendar* cal);
 uint8_t setDatetime(Calendar* cal);
+void calToString(Calendar* cal, char *str);
 
 #endif

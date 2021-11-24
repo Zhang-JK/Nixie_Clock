@@ -78,7 +78,7 @@ void Blink(void const *argument);
 
 void ds3231Timer(void const *argument);
 
-void nixieControl(void const *argument);
+_Noreturn void nixieControl(void const *argument);
 
 void mucisControl(void const *argument);
 
@@ -165,14 +165,14 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_Blink */
-void Blink(void const *argument) {
+_Noreturn void Blink(void const *argument) {
     /* USER CODE BEGIN Blink */
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
 
     /* Infinite loop */
     for (;;) {
         // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_2);
+//        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_2);
         osDelay(300);
     }
     /* USER CODE END Blink */
@@ -185,14 +185,14 @@ void Blink(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_ds3231Timer */
-void ds3231Timer(void const *argument) {
+_Noreturn void ds3231Timer(void const *argument) {
     /* USER CODE BEGIN ds3231Timer */
-    static volatile Calendar cal = {7, 4, 0, 21, 11, 11, 4};
+//    static volatile Calendar cal = {7, 4, 0, 21, 11, 11, 4};
 //    setDatetime(&cal);
 
     /* Infinite loop */
     for (;;) {
-        getDatetime(&cal);
+        getDatetime(&calendar);
         osDelay(300);
     }
     /* USER CODE END ds3231Timer */
@@ -205,17 +205,22 @@ void ds3231Timer(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_nixieControl */
-void nixieControl(void const *argument) {
+_Noreturn void nixieControl(void const *argument) {
     /* USER CODE BEGIN nixieControl */
-    static volatile NixieTube tube;
-    setGPIO(&tube, nixiePorts[1], nixiePins[1]);
+    static volatile NixieTube tube[6];
+    for(int i=0; i<6; i++)
+        setGPIO(&(tube[i]), nixiePorts[i], nixiePins[i]);
     static volatile int number = 0;
 
     /* Infinite loop */
     for (;;) {
-        setNumber(&tube, number);
-        number = ++number % 10;
-        osDelay(1000);
+        setNumber(&(tube[0]), calendar.sec % 10);
+        setNumber(&(tube[1]), calendar.sec / 10);
+        setNumber(&(tube[2]), calendar.min % 10);
+        setNumber(&(tube[3]), calendar.min / 10);
+        setNumber(&(tube[4]), calendar.hour % 10);
+        setNumber(&(tube[5]), calendar.hour / 10);
+        osDelay(100);
     }
     /* USER CODE END nixieControl */
 }
@@ -227,7 +232,7 @@ void nixieControl(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_mucisControl */
-void mucisControl(void const *argument) {
+_Noreturn void mucisControl(void const *argument) {
     /* USER CODE BEGIN mucisControl */
     static volatile MusicPlayer player;
     setPWMOutput(&player, &htim3, TIM_CHANNEL_3);
@@ -248,7 +253,7 @@ void mucisControl(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_oledController */
-void oledController(void const *argument) {
+_Noreturn void oledController(void const *argument) {
     /* USER CODE BEGIN oledController */
     OLED_Init();
     osDelay(500);
@@ -258,8 +263,10 @@ void oledController(void const *argument) {
     osDelay(5000);
     /* Infinite loop */
     for (;;) {
+        char date[21];
+        calToString(&calendar, date);
         OLED_Show_String(31, 0, "Nixie Clock", SMALL);
-        OLED_Show_String(5, 1, "2021-11-25 00:00:00", SMALL);
+        OLED_Show_String(15, 1, date, SMALL);
         OLED_Show_String(5, 2, "BT  : NOT Connected", SMALL);
         OLED_Show_String(5, 3, "WiFi: NOT Connected",SMALL);
         OLED_Show_String(5, 4, "Mode: Clock, Alarm",SMALL);

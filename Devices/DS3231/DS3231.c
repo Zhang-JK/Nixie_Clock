@@ -1,4 +1,7 @@
 #include <DS3231.h>
+#include <stdio.h>
+
+Calendar calendar;
 
 uint8_t BCDtoBinary(uint8_t bcd) {
     return bcd - 6 * (bcd >> 4);
@@ -34,4 +37,8 @@ uint8_t setDatetime(Calendar *cal) {
     DS3231Data[5] = binaryToBCD(cal->month);
     DS3231Data[6] = binaryToBCD(cal->year);
     HAL_I2C_Mem_Write(&hi2c2, DS3231_ADD << 1, 0, I2C_MEMADD_SIZE_8BIT, DS3231Data, 7, 1000);
+}
+
+void calToString(Calendar* cal, char *str) {
+    sprintf(str, "%2lu-%2u-%2u %2u:%2u:%2u", cal->year, cal->month, cal->day, cal->hour, cal->min, cal->sec);
 }
