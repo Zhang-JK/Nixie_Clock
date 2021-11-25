@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 Calendar calendar;
+Calendar countDown = {0};
+Calendar alarm = {0};
 
 uint8_t BCDtoBinary(uint8_t bcd) {
     return bcd - 6 * (bcd >> 4);

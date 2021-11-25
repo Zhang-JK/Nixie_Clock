@@ -48,6 +48,8 @@ typedef struct
 #define     DS3231_ADD                      0x68
 
 extern Calendar calendar;
+extern Calendar countDown;
+extern Calendar alarm;
 
 uint8_t getDatetime(Calendar* cal);
 uint8_t setDatetime(Calendar* cal);

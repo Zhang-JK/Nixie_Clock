@@ -26,12 +26,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usart.h"
+#include "tim.h"
+
 #include "NixieTube.h"
 #include "DS3231.h"
 #include "Buzzer.h"
 #include "MusicSheets.h"
-#include "tim.h"
 #include "OLED.h"
+#include "Controller.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,6 +71,9 @@ osStaticThreadDef_t musicControlBlock;
 osThreadId OLEDControllerHandle;
 uint32_t OLEDControllerBuffer[128];
 osStaticThreadDef_t OLEDControllerControlBlock;
+osThreadId bluetoothHandle;
+uint32_t bluetoothBuffer[256];
+osStaticThreadDef_t bluetoothControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -78,11 +84,13 @@ void Blink(void const *argument);
 
 void ds3231Timer(void const *argument);
 
-_Noreturn void nixieControl(void const *argument);
+void nixieControl(void const *argument);
 
 void mucisControl(void const *argument);
 
 void oledController(void const *argument);
+
+void btController(void const *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -152,6 +160,10 @@ void MX_FREERTOS_Init(void) {
                       &OLEDControllerControlBlock);
     OLEDControllerHandle = osThreadCreate(osThread(OLEDController), NULL);
 
+    /* definition and creation of bluetooth */
+    osThreadStaticDef(bluetooth, btController, osPriorityHigh, 0, 256, bluetoothBuffer, &bluetoothControlBlock);
+    bluetoothHandle = osThreadCreate(osThread(bluetooth), NULL);
+
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
     /* USER CODE END RTOS_THREADS */
@@ -165,7 +177,7 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_Blink */
-_Noreturn void Blink(void const *argument) {
+void Blink(void const *argument) {
     /* USER CODE BEGIN Blink */
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
 
@@ -185,7 +197,7 @@ _Noreturn void Blink(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_ds3231Timer */
-_Noreturn void ds3231Timer(void const *argument) {
+void ds3231Timer(void const *argument) {
     /* USER CODE BEGIN ds3231Timer */
 //    static volatile Calendar cal = {7, 4, 0, 21, 11, 11, 4};
 //    setDatetime(&cal);
@@ -205,10 +217,10 @@ _Noreturn void ds3231Timer(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_nixieControl */
-_Noreturn void nixieControl(void const *argument) {
+void nixieControl(void const *argument) {
     /* USER CODE BEGIN nixieControl */
     static volatile NixieTube tube[6];
-    for(int i=0; i<6; i++)
+    for (int i = 0; i < 6; i++)
         setGPIO(&(tube[i]), nixiePorts[i], nixiePins[i]);
     static volatile int number = 0;
 
@@ -232,7 +244,7 @@ _Noreturn void nixieControl(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_mucisControl */
-_Noreturn void mucisControl(void const *argument) {
+void mucisControl(void const *argument) {
     /* USER CODE BEGIN mucisControl */
     static volatile MusicPlayer player;
     setPWMOutput(&player, &htim3, TIM_CHANNEL_3);
@@ -253,7 +265,7 @@ _Noreturn void mucisControl(void const *argument) {
 * @retval None
 */
 /* USER CODE END Header_oledController */
-_Noreturn void oledController(void const *argument) {
+void oledController(void const *argument) {
     /* USER CODE BEGIN oledController */
     OLED_Init();
     osDelay(500);
@@ -268,14 +280,32 @@ _Noreturn void oledController(void const *argument) {
         OLED_Show_String(31, 0, "Nixie Clock", SMALL);
         OLED_Show_String(15, 1, date, SMALL);
         OLED_Show_String(5, 2, "BT  : NOT Connected", SMALL);
-        OLED_Show_String(5, 3, "WiFi: NOT Connected",SMALL);
-        OLED_Show_String(5, 4, "Mode: Clock, Alarm",SMALL);
-        OLED_Show_String(5, 5, "Last Instruction: ",SMALL);
-        OLED_Show_String(20, 6, "&1-1.",SMALL);
-        OLED_Show_String(56, 7, "Group 22 :)",SMALL);
+        OLED_Show_String(5, 3, "WiFi: NOT Connected", SMALL);
+        OLED_Show_String(5, 4, "Mode: Clock, Alarm", SMALL);
+        OLED_Show_String(5, 5, "Last Instruction: ", SMALL);
+        OLED_Show_String(20, 6, msg, SMALL);
+        OLED_Show_String(56, 7, "Group 22 :)", SMALL);
         osDelay(200);
     }
     /* USER CODE END oledController */
+}
+
+/* USER CODE BEGIN Header_btController */
+/**
+* @brief Function implementing the bluetooth thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_btController */
+void btController(void const *argument) {
+    /* USER CODE BEGIN btController */
+    HAL_UART_Receive_IT(&huart2, buffer, 1);
+    /* Infinite loop */
+    for (;;) {
+        processMsg();
+        osDelay(100);
+    }
+    /* USER CODE END btController */
 }
 
 /* Private application code --------------------------------------------------*/
