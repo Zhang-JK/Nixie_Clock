@@ -219,16 +219,29 @@ void nixieControl(void const * argument)
     static volatile NixieTube tube[6];
     for (int i = 0; i < 6; i++)
         setGPIO(&(tube[i]), nixiePorts[i], nixiePins[i]);
-    static volatile int number = 0;
+    static volatile int sensorCount = 0;
+    int maxLeave = 60;
 
     /* Infinite loop */
     for (;;) {
-        setNumber(&(tube[0]), calendar.sec % 10);
-        setNumber(&(tube[1]), calendar.sec / 10);
-        setNumber(&(tube[2]), calendar.min % 10);
-        setNumber(&(tube[3]), calendar.min / 10);
-        setNumber(&(tube[4]), calendar.hour % 10);
-        setNumber(&(tube[5]), calendar.hour / 10);
+        if(status.lightOn && getSensorState()==0 && sensorCount<maxLeave*10+100) sensorCount++;
+        else sensorCount=0;
+
+        if(status.lightOn && (status.autoOff==0 || sensorCount<maxLeave*10)) {
+            if(status.displayState==0) {
+                setNumber(&(tube[0]), calendar.sec % 10);
+                setNumber(&(tube[1]), calendar.sec / 10);
+                setNumber(&(tube[2]), calendar.min % 10);
+                setNumber(&(tube[3]), calendar.min / 10);
+                setNumber(&(tube[4]), calendar.hour % 10);
+                setNumber(&(tube[5]), calendar.hour / 10);
+            }
+            else {
+
+            }
+        }
+        else
+            for (int i=0; i<6; i++) setNumber(&(tube[i]), NIXIE_NULL);
         osDelay(100);
     }
   /* USER CODE END nixieControl */
@@ -250,7 +263,9 @@ void mucisControl(void const * argument)
 
     /* Infinite loop */
     for (;;) {
-        playMusic(&player);
+        if((alarm.min==calendar.min && alarm.hour==calendar.hour) || (status.displayState!=0 && countDown.hour==0 && countDown.min==0 && countDown.sec==0))
+            playMusic(&player);
+        else stopMusic(&player);
         osDelay(10);
     }
   /* USER CODE END mucisControl */
@@ -280,7 +295,7 @@ void oledController(void const * argument)
         else
             calToString(&countDown, date);
         char alarmShow[21];
-        sprintf(alarmShow, "Alarm: %s, at %2d:%2d", alarm.hour==0&&alarm.min==0 ? "OFF" : "ON", alarm.hour, alarm.min);
+        sprintf(alarmShow, "Alarm: %s, at %2d:%2d", alarm.hour==0&&alarm.min==0 ? "OFF" : " ON", alarm.hour, alarm.min);
         OLED_Show_String(31, 0, "Nixie Clock", SMALL);
         OLED_Show_String(15, 1, date, SMALL);
 //        OLED_Show_String(5, 2, "BT  : NOT Connected", SMALL);

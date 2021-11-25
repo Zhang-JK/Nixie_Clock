@@ -27,6 +27,10 @@ void setIndex(MusicPlayer *obj, float percentage) {
     obj->index = obj->size * percentage;
 }
 
+void stopMusic(MusicPlayer *obj) {
+    HAL_TIM_PWM_Stop(obj->htim, obj->channel);
+}
+
 void playMusic(MusicPlayer *obj) {
     if (obj->index >= obj->size)
         obj->index = 0;

@@ -18,5 +18,6 @@ void setPWMOutput(MusicPlayer* obj, TIM_HandleTypeDef *htim, uint32_t channel);
 void setMusicSheet(MusicPlayer* obj, uint8_t baseTime, uint32_t size);
 void setIndex(MusicPlayer* obj, float percentage);
 void playMusic(MusicPlayer* obj);
+void stopMusic(MusicPlayer *obj);
 
 #endif //NIXIECLOCK_BUZZER_H
