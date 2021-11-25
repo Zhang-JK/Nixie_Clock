@@ -68,6 +68,8 @@ void Error_Handler(void);
 #define SW1_GPIO_Port GPIOC
 #define SW2_Pin GPIO_PIN_3
 #define SW2_GPIO_Port GPIOC
+#define SENSOR_Pin GPIO_PIN_6
+#define SENSOR_GPIO_Port GPIOA
 #define SPI_RES_Pin GPIO_PIN_4
 #define SPI_RES_GPIO_Port GPIOC
 #define SPI_DC_Pin GPIO_PIN_5
