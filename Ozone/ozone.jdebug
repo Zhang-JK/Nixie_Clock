@@ -4,8 +4,8 @@
 *                         www.segger.com                             *
 **********************************************************************
                                                                       
-File          : /home/lao_jk/Code/NixieClock/Ozone/ozone.jdebug
-Created       : 1 Dec 2021 00:45
+File          : /home/lao_jk/Code/testN/Nixie_Clock/Ozone/ozone.jdebug
+Created       : 29 Dec 2021 22:12
 Ozone Version : V3.20f
 */
 
@@ -22,8 +22,8 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("/home/lao_jk/Code/NixieClock/Ozone", "$(ProjectDir)");
-  Project.AddPathSubstitute ("/home/lao_jk/code/nixieclock/ozone", "$(ProjectDir)");
+  Project.AddPathSubstitute ("/home/lao_jk/Code/testN/Nixie_Clock/Ozone", "$(ProjectDir)");
+  Project.AddPathSubstitute ("/home/lao_jk/code/testn/nixie_clock/ozone", "$(ProjectDir)");
   Project.SetDevice ("STM32L071RB");
   Project.SetHostIF ("USB", "");
   Project.SetTargetIF ("SWD");
@@ -32,7 +32,7 @@ void OnProjectLoad (void) {
   //
   // User settings
   //
-  File.Open ("/home/lao_jk/Code/NixieClock/build/NixieClock.elf");
+  File.Open ("/home/lao_jk/Code/testN/Nixie_Clock/build/NixieClock.elf");
 }
 
 /*********************************************************************

@@ -5,7 +5,7 @@ int8_t processing = 0;
 uint8_t buffer[8];
 uint8_t msg[11];
 Status status = {
-        0,
+        1,
         {0,0,0,0,0,0,0,0,0},
         0,
         {0,0,0,0,0,0,0,0,0},
@@ -39,14 +39,18 @@ void processMsg() {
             setDatetime(&status.time);
             break;
         case '3':
-            status.displayState = msg[3]-'0';
+            if(status.displayState == 0)
+                status.displayState = (msg[3]-'0'<2?msg[3]-'0':1);
+            else
+                status.displayState = msg[3]-'0'<4?msg[3]-'0':0;
             break;
         case '4':
             status.counter = countDown;
-            status.counter.min = (msg[3]-'0')*10 + msg[4]-'0';
-            status.counter.sec = (msg[6]-'0')*10 + msg[7]-'0';
-            status.counter.hour = 0;
+            status.counter.hour = (msg[3]-'0')*10 + msg[4]-'0';
+            status.counter.min = (msg[6]-'0')*10 + msg[7]-'0';
+            status.counter.sec = 0;
             countDown = status.counter;
+            status.displayState = 1;
             break;
         case '5':
             status.autoOff = msg[3]-'0';

@@ -76,6 +76,9 @@ osStaticThreadDef_t OLEDControllerControlBlock;
 osThreadId bluetoothHandle;
 uint32_t bluetoothBuffer[ 256 ];
 osStaticThreadDef_t bluetoothControlBlock;
+osThreadId CountHandle;
+uint32_t CountBuffer[ 128 ];
+osStaticThreadDef_t CountControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -88,6 +91,7 @@ void nixieControl(void const * argument);
 void mucisControl(void const * argument);
 void oledController(void const * argument);
 void btController(void const * argument);
+void counter(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -158,6 +162,10 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(bluetooth, btController, osPriorityHigh, 0, 256, bluetoothBuffer, &bluetoothControlBlock);
   bluetoothHandle = osThreadCreate(osThread(bluetooth), NULL);
 
+  /* definition and creation of Count */
+  osThreadStaticDef(Count, counter, osPriorityIdle, 0, 128, CountBuffer, &CountControlBlock);
+  CountHandle = osThreadCreate(osThread(Count), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -195,7 +203,7 @@ void Blink(void const * argument)
 void ds3231Timer(void const * argument)
 {
   /* USER CODE BEGIN ds3231Timer */
-//    static volatile Calendar cal = {7, 4, 0, 21, 11, 11, 4};
+//    static volatile Calendar cal = {23, 15, 0, 21, 11, 29, 1};
 //    setDatetime(&cal);
 
     /* Infinite loop */
@@ -224,24 +232,28 @@ void nixieControl(void const * argument)
 
     /* Infinite loop */
     for (;;) {
-        if(status.lightOn && getSensorState()==0 && sensorCount<maxLeave*10+100) sensorCount++;
-        else sensorCount=0;
+        if (status.lightOn && getSensorState() == 0 && sensorCount < maxLeave * 10 + 100) sensorCount++;
+        else sensorCount = 0;
 
-        if(status.lightOn && (status.autoOff==0 || sensorCount<maxLeave*10)) {
-            if(status.displayState==0) {
+        if (status.lightOn && (status.autoOff == 0 || sensorCount < maxLeave * 10)) {
+            if (status.displayState == 0) {
                 setNumber(&(tube[0]), calendar.sec % 10);
                 setNumber(&(tube[1]), calendar.sec / 10);
                 setNumber(&(tube[2]), calendar.min % 10);
                 setNumber(&(tube[3]), calendar.min / 10);
                 setNumber(&(tube[4]), calendar.hour % 10);
                 setNumber(&(tube[5]), calendar.hour / 10);
-            }
-            else {
-
+            } else {
+                setNumber(&(tube[0]), countDown.sec % 10);
+                setNumber(&(tube[1]), countDown.sec / 10);
+                setNumber(&(tube[2]), countDown.min % 10);
+                setNumber(&(tube[3]), countDown.min / 10);
+                setNumber(&(tube[4]), countDown.hour % 10);
+                setNumber(&(tube[5]), countDown.hour / 10);
             }
         }
         else
-            for (int i=0; i<6; i++) setNumber(&(tube[i]), NIXIE_NULL);
+            for (int i = 0; i < 6; i++) setNumber(&(tube[i]), NIXIE_NULL);
         osDelay(100);
     }
   /* USER CODE END nixieControl */
@@ -258,15 +270,33 @@ void mucisControl(void const * argument)
 {
   /* USER CODE BEGIN mucisControl */
     static volatile MusicPlayer player;
-    setPWMOutput(&player, &htim3, TIM_CHANNEL_3);
+    setPWMOutput(&player, &htim3, TIM_CHANNEL_4);
     setMusicSheet(&player, 100, 30);
+    int startCount = 0;
 
     /* Infinite loop */
     for (;;) {
-        if((alarm.min==calendar.min && alarm.hour==calendar.hour) || (status.displayState!=0 && countDown.hour==0 && countDown.min==0 && countDown.sec==0))
+        if ((alarm.min == calendar.min && alarm.hour == calendar.hour && status.displayState == 0) ||
+            (status.displayState == 4))
+            startCount = 180 * 100;
+
+        while (startCount > 0) {
+            startCount--;
             playMusic(&player);
-        else stopMusic(&player);
-        osDelay(10);
+            if (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET) {
+                startCount = 0;
+                stopMusic(&player);
+                if (status.displayState == 0)
+                    while (alarm.min != calendar.min - 1) osDelay(1000);
+                else
+                    status.displayState = 1;
+            }
+            osDelay(10);
+        }
+
+        stopMusic(&player);
+
+        osDelay(1000);
     }
   /* USER CODE END mucisControl */
 }
@@ -290,20 +320,21 @@ void oledController(void const * argument)
     /* Infinite loop */
     for (;;) {
         char date[21];
-        if(status.displayState==0)
+        if (status.displayState == 0)
             calToString(&calendar, date);
         else
             calToString(&countDown, date);
         char alarmShow[21];
-        sprintf(alarmShow, "Alarm: %s, at %2d:%2d", alarm.hour==0&&alarm.min==0 ? "OFF" : " ON", alarm.hour, alarm.min);
+        sprintf(alarmShow, "Alarm: %s, at %2d:%2d", alarm.hour == 0 && alarm.min == 0 ? "OFF" : " ON", alarm.hour,
+                alarm.min);
         OLED_Show_String(31, 0, "Nixie Clock", SMALL);
         OLED_Show_String(15, 1, date, SMALL);
 //        OLED_Show_String(5, 2, "BT  : NOT Connected", SMALL);
         OLED_Show_String(5, 2, alarmShow, SMALL);
         OLED_Show_String(5, 3, "WiFi: NOT Connected", SMALL);
-        OLED_Show_String(5, 4, status.displayState==0?"Mode: Clock":"Mode: Counter", SMALL);
-        OLED_Show_String(5, 4, status.displayState==0?"Mode: Clock":"Mode: Counter", SMALL);
-        OLED_Show_String(100, 4, getSensorState()==0?"N":"Y", SMALL);
+        OLED_Show_String(5, 4, status.displayState == 0 ? "Mode: Clock" : "Mode: Counter", SMALL);
+        OLED_Show_String(5, 4, status.displayState == 0 ? "Mode: Clock" : "Mode: Counter", SMALL);
+        OLED_Show_String(100, 4, getSensorState() == 0 ? "N" : "Y", SMALL);
         OLED_Show_String(5, 5, "Last Instruction: ", SMALL);
         OLED_Show_String(20, 6, msg, SMALL);
         OLED_Show_String(56, 7, "Group 22 :)", SMALL);
@@ -329,6 +360,37 @@ void btController(void const * argument)
         osDelay(100);
     }
   /* USER CODE END btController */
+}
+
+/* USER CODE BEGIN Header_counter */
+/**
+* @brief Function implementing the Count thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_counter */
+void counter(void const * argument)
+{
+  /* USER CODE BEGIN counter */
+    /* Infinite loop */
+    for (;;) {
+        if (status.displayState == 2) {
+            if (countDown.sec == 0 && countDown.min == 0 && countDown.hour == 0) {
+                status.displayState = 4;
+            } else if (countDown.sec == 0 && countDown.min == 0) {
+                countDown.hour -= 1;
+                countDown.min = 59;
+                countDown.sec = 59;
+            } else if (countDown.sec == 0) {
+                countDown.min -= 1;
+                countDown.sec = 59;
+            } else {
+                countDown.sec -= 1;
+            }
+        }
+        osDelay(1000);
+    }
+  /* USER CODE END counter */
 }
 
 /* Private application code --------------------------------------------------*/
