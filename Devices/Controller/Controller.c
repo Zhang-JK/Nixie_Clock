@@ -1,9 +1,10 @@
 #include "Controller.h"
+#include "ESP8266.h"
 
 int8_t index = 0;
 int8_t processing = 0;
 uint8_t buffer[8];
-uint8_t msg[11];
+uint8_t msg[15];
 Status status = {
         1,
         {0,0,0,0,0,0,0,0,0},
@@ -16,12 +17,17 @@ Status status = {
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 //    HAL_UART_Transmit(&huart2,buffer,1,10);
-    if(processing) return;
-    if(buffer[0] == '&' || index>10) index = 0;
-    msg[index++] = buffer[0];
-    if(buffer[0] == '.') {
-        for(uint8_t i=index; i<11; i++) msg[i]='.';
-        processing = 1;
+    if(huart == &huart2) {
+        if (processing) return;
+        if (buffer[0] == '&' || index > 14) index = 0;
+        msg[index++] = buffer[0];
+        if (buffer[0] == '.') {
+            for (uint8_t i = index; i < 14; i++) msg[i] = '.';
+            processing = 1;
+        }
+    }
+    else if(huart == &huart4) {
+        interruptCallback();
     }
 }
 
@@ -56,12 +62,20 @@ void processMsg() {
             status.autoOff = msg[3]-'0';
             break;
         case '6':
+            getTime();
             break;
         case '7':
             status.time = alarm;
             status.time.hour = (msg[3]-'0')*10 + msg[4]-'0';
             status.time.min = (msg[6]-'0')*10 + msg[7]-'0';
             alarm = status.time;
+            break;
+        case '8':
+            status.time = calendar;
+            status.time.hour = (msg[3]-'0')*10 + msg[4]-'0';
+            status.time.min = (msg[6]-'0')*10 + msg[7]-'0';
+            status.time.sec = (msg[9]-'0')*10 + msg[10]-'0';
+            setDatetime(&status.time);
             break;
     }
     HAL_UART_Transmit(&huart2, msg, index, 30);

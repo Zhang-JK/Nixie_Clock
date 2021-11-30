@@ -75,6 +75,7 @@ Devices/NixieTube/NixieTube.c \
 Devices/Sensor/IFSensor.c \
 Devices/Buzzer/Buzzer.c \
 Devices/OLED/OLED.c \
+Devices/ESP8266/ESP8266.c \
 Core/Src/usart.c \
 Core/Src/spi.c \
 Core/Src/tim.c \
@@ -151,6 +152,7 @@ C_INCLUDES =  \
 -IDevices/OLED \
 -IDevices/Sensor \
 -IDevices/Controller \
+-IDevices/ESP8266 \
 -IDevices/NixieTube
 
 

@@ -16,7 +16,7 @@ typedef struct {
     uint8_t alarmUpdate;
 } Status;
 
-extern uint8_t msg[11];
+extern uint8_t msg[15];
 extern uint8_t buffer[8];
 extern Status status;
 

@@ -287,7 +287,7 @@ void mucisControl(void const * argument)
                 startCount = 0;
                 stopMusic(&player);
                 if (status.displayState == 0)
-                    while (alarm.min != calendar.min - 1) osDelay(1000);
+                    while (alarm.min == calendar.min) osDelay(1000);
                 else
                     status.displayState = 1;
             }
