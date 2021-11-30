@@ -121,6 +121,7 @@ ProjectManager.HalAssertFull=false
 PC14-OSC32_IN.GPIOParameters=GPIO_Label
 ProjectManager.ProjectName=NixieClock
 PA0.Signal=USART4_TX
+NVIC.USART4_5_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:true
 PB7.GPIO_Label=NT51
 PC8.GPIOParameters=GPIO_Label
 Mcu.Package=LQFP64
